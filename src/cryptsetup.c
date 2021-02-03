@@ -32,6 +32,7 @@ static int opt_verify_passphrase = 0;
 static const char *opt_json_file = NULL;
 static const char *opt_key_file = NULL;
 static const char *opt_keyfile_stdin = NULL;
+static const char *opt_key_desc = NULL;
 static int opt_keyfiles_count = 0;
 static const char *opt_keyfiles[MAX_KEYFILES];
 
@@ -332,6 +333,9 @@ static int action_open_plain(void)
 	if (opt_shared)
 		activate_flags |= CRYPT_ACTIVATE_SHARED;
 
+	if (opt_key_desc)
+		activate_flags |= CRYPT_ACTIVATE_KEYRING_KEY;
+
 	_set_activation_flags(&activate_flags);
 
 	if (!tools_is_stdin(opt_key_file)) {
@@ -344,6 +348,19 @@ static int action_open_plain(void)
 		r = crypt_activate_by_keyfile_device_offset(cd, action_argv[1],
 			CRYPT_ANY_SLOT, opt_key_file, key_size_max,
 			opt_keyfile_offset, activate_flags);
+
+	} else if (opt_key_desc) {
+		password = (char *)opt_key_desc;
+		passwordLen = strlen(opt_key_desc);
+
+		r = crypt_activate_by_passphrase(cd, action_argv[1],
+			CRYPT_ANY_SLOT, password, passwordLen, activate_flags);
+
+		//free(password);
+		password = NULL;
+
+		if (r < 0)
+			goto out;
 	} else {
 		key_size_max = (opt_key_file && !params.hash) ? key_size : (size_t)opt_keyfile_size;
 		r = tools_get_key(NULL, &password, &passwordLen,
@@ -3491,6 +3508,7 @@ int main(int argc, const char **argv)
 		{ "hash",              'h',  POPT_ARG_STRING, &opt_hash,                0, N_("The hash used to create the encryption key from the passphrase"), NULL },
 		{ "verify-passphrase", 'y',  POPT_ARG_NONE, &opt_verify_passphrase,     0, N_("Verifies the passphrase by asking for it twice"), NULL },
 		{ "key-file",          'd',  POPT_ARG_STRING, &opt_key_file,            6, N_("Read the key from a file"), NULL },
+		{ "key-desc",         '\0',  POPT_ARG_STRING, &opt_key_desc,            0, N_("Keyring descriptor to use"), NULL },
 		{ "master-key-file",  '\0',  POPT_ARG_STRING, &opt_master_key_file,     0, N_("Read the volume (master) key from file."), NULL },
 		{ "dump-master-key",  '\0',  POPT_ARG_NONE, &opt_dump_master_key,       0, N_("Dump volume (master) key instead of keyslots info"), NULL },
 		{ "key-size",          's',  POPT_ARG_INT, &opt_key_size,               0, N_("The size of the encryption key"), N_("BITS") },

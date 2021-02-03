@@ -248,7 +248,7 @@ int init_crypto(struct crypt_device *ctx)
 
 static int process_key(struct crypt_device *cd, const char *hash_name,
 		       size_t key_size, const char *pass, size_t passLen,
-		       struct volume_key **vk)
+		       struct volume_key **vk, uint32_t flags)
 {
 	int r;
 
@@ -258,6 +258,13 @@ static int process_key(struct crypt_device *cd, const char *hash_name,
 	*vk = crypt_alloc_volume_key(key_size, NULL);
 	if (!*vk)
 		return -ENOMEM;
+
+	if (flags & CRYPT_ACTIVATE_KEYRING_KEY) {
+		(*vk)->key_description = strdup(pass);
+		(*vk)->keylength = key_size;
+
+		return 0;
+	}
 
 	if (hash_name) {
 		r = crypt_plain_hash(cd, hash_name, (*vk)->key, key_size, pass, passLen);
@@ -4102,7 +4109,7 @@ static int _activate_by_passphrase(struct crypt_device *cd,
 
 		r = process_key(cd, cd->u.plain.hdr.hash,
 				cd->u.plain.key_size,
-				passphrase, passphrase_size, &vk);
+				passphrase, passphrase_size, &vk, flags);
 		if (r < 0)
 			goto out;
 
@@ -4635,7 +4642,7 @@ int crypt_volume_key_get(struct crypt_device *cd,
 
 	if (isPLAIN(cd->type) && cd->u.plain.hdr.hash) {
 		r = process_key(cd, cd->u.plain.hdr.hash, key_len,
-				passphrase, passphrase_size, &vk);
+				passphrase, passphrase_size, &vk, 0);
 		if (r < 0)
 			log_err(cd, _("Cannot retrieve volume key for plain device."));
 	} else if (isLUKS1(cd->type)) {
@@ -5875,7 +5882,7 @@ int crypt_use_keyring_for_vk(struct crypt_device *cd)
 	uint32_t dmc_flags;
 
 	/* dm backend must be initialized */
-	if (!cd || !isLUKS2(cd->type))
+	if (!cd)
 		return 0;
 
 	if (!_vk_via_keyring || !kernel_keyring_support())
