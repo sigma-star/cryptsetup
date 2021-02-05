@@ -9,9 +9,9 @@ compiler:
   - gcc
 
 env:
-  - MAKE_CHECK="gcrypt"
-  - MAKE_CHECK="openssl"
-  - MAKE_CHECK="kernel"
+  #- MAKE_CHECK="gcrypt"
+  - MAKE_CHECK="openssl" CFLAGS="-fsanitize=address" LDFLAGS="-fsanitize=address"
+  #- MAKE_CHECK="kernel"
 
 branches:
   only:

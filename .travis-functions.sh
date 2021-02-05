@@ -135,6 +135,7 @@ function travis_before_script
 	ret=$?
 
 	set +o xtrace
+	echo "before script finished: $ret"
 	return $ret
 }
 
@@ -142,6 +143,8 @@ function travis_script
 {
 	local ret
 	set -o xtrace
+
+	echo "run script $MAKE_CHECK"
 
 	case "$MAKE_CHECK" in
 	gcrypt)
@@ -173,6 +176,7 @@ function travis_script
 
 	ret=$?
 	set +o xtrace
+	echo "run script finished: $ret"
 	return $ret
 }
 
